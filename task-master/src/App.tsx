@@ -16,6 +16,7 @@ import AllTasks from "./views/AllTasks";
 import PendingTasks from "./views/PendingTasks";
 import CompletedTasks from "./views/CompletedTasks";
 import OverdueTasks from "./views/OverdueTasks";
+import AddTaskModal,{type TaskFormData} from "./views/AddTaskModal";
 
 type ViewType = "Dashboard" | "All Tasks" | "Pending" | "Completed" | "Overdue";
 
@@ -40,6 +41,7 @@ const navItems:NavItem[] = [
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState("Dashboard");
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
 
   // Helper to dynamically render the view component
   const renderView = () => {
@@ -62,6 +64,10 @@ export default function App() {
   const handleNavClick = (viewId:ViewType) => {
     setCurrentView(viewId);
     setIsSidebarOpen(false); // Close mobile drawer when a link is clicked
+  };
+  const handleAddTaskSubmit = (taskData: TaskFormData) => {
+    console.log("New Task Submitted:", taskData);
+    // Add your logic to save the new task to your backend or local state here.
   };
 
   return (
@@ -164,9 +170,16 @@ export default function App() {
       <button
         className="fixed bottom-6 right-6 z-40 p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 active:scale-95"
         aria-label="Add Task"
+        onClick={() => setIsAddTaskModalOpen(true)}
       >
         <Plus className="w-6 h-6" />
       </button>
+
+        <AddTaskModal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        onSubmit={handleAddTaskSubmit}
+      />
     </div>
   );
 }
