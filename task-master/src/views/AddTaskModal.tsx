@@ -151,8 +151,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             </div>
           </div>
-        </form>
-
+          
         {/* Modal Footer / Actions */}
         <div className="p-6 border-t border-gray-100 flex items-center justify-end gap-4 shrink-0">
           <button
@@ -165,12 +164,13 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           <button
             form="taskForm" // Link this button to the form above
             type="submit"
-            onClick={handleSubmit} // Since the form is not directly wrapped by this div, trigger the submit handler explicitly
             className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition"
           >
             Add Task
           </button>
         </div>
+        </form>
+
       </div>
     </div>
   );

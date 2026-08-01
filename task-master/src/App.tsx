@@ -16,7 +16,7 @@ import AllTasks from "./views/AllTasks";
 import PendingTasks from "./views/PendingTasks";
 import CompletedTasks from "./views/CompletedTasks";
 import OverdueTasks from "./views/OverdueTasks";
-import AddTaskModal,{type TaskFormData} from "./views/AddTaskModal";
+import AddTaskModal, { type TaskFormData } from "./views/AddTaskModal";
 
 type ViewType = "Dashboard" | "All Tasks" | "Pending" | "Completed" | "Overdue";
 
@@ -27,8 +27,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-
-const navItems:NavItem[] = [
+const navItems: NavItem[] = [
   { id: "Dashboard", label: "Dashboard", icon: Home },
   { id: "All Tasks", label: "All Tasks", icon: CheckSquare },
   { id: "Pending", label: "Pending", icon: Clock },
@@ -61,13 +60,30 @@ export default function App() {
     }
   };
 
-  const handleNavClick = (viewId:ViewType) => {
+  const handleNavClick = (viewId: ViewType) => {
     setCurrentView(viewId);
     setIsSidebarOpen(false); // Close mobile drawer when a link is clicked
   };
-  const handleAddTaskSubmit = (taskData: TaskFormData) => {
-    console.log("New Task Submitted:", taskData);
-    // Add your logic to save the new task to your backend or local state here.
+  const handleAddTaskSubmit = async (taskData: TaskFormData) => {
+    try {
+      const response = await fetch("http://localhost:5000/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(taskData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log("Server Response:", result);
+      alert("Task saved successfully!");
+    } catch (error) {
+      console.error("Failed to save task:", error);
+    }
   };
 
   return (
@@ -83,9 +99,7 @@ export default function App() {
       {/* 1. Sidebar (Desktop Static / Mobile Drawer) */}
       <aside
         className={`fixed md:static top-0 left-0 h-screen w-64 bg-white border-r border-gray-100 p-6 flex flex-col justify-between z-50 transition-transform duration-300 ease-in-out shrink-0 ${
-          isSidebarOpen
-            ? "translate-x-0"
-            : "-translate-x-full md:translate-x-0"
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
         <div className="space-y-8">
@@ -149,9 +163,7 @@ export default function App() {
             <div className="bg-blue-600 text-white p-1.5 rounded-lg">
               <CheckSquare className="w-5 h-5" />
             </div>
-            <span className="font-bold text-lg text-slate-800">
-              TaskMaster
-            </span>
+            <span className="font-bold text-lg text-slate-800">TaskMaster</span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(true)}
@@ -175,10 +187,10 @@ export default function App() {
         <Plus className="w-6 h-6" />
       </button>
 
-        <AddTaskModal
+      <AddTaskModal
         isOpen={isAddTaskModalOpen}
         onClose={() => setIsAddTaskModalOpen(false)}
-        onSubmit={handleAddTaskSubmit}
+        onSubmit={()=>handleAddTaskSubmit}
       />
     </div>
   );
