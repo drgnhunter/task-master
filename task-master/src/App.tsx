@@ -65,13 +65,14 @@ export default function App() {
     setIsSidebarOpen(false); // Close mobile drawer when a link is clicked
   };
   const handleAddTaskSubmit = async (taskData: TaskFormData) => {
+    
     try {
       const response = await fetch("http://localhost:5000/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(taskData),
+        body: JSON.stringify({...taskData, tableName:"tasks"}),
       });
 
       if (!response.ok) {
