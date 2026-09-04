@@ -76,6 +76,8 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         throw new Error(`Server returned ${response.status}`);
       }
 
+      
+
       // Notify parent component, clear state, and close modal
       onSubmit(taskData);
       resetForm();

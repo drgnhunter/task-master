@@ -1,12 +1,12 @@
 // server.js
-const express = require('express');
+const express = require("express");
 
 // Initialize the Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
-const cors = require('cors');
-const db = require('./db'); // Import the connector file
-const BaseModel = require('./BaseModel');
+const cors = require("cors");
+const db = require("./db"); // Import the connector file
+const BaseModel = require("./BaseModel");
 
 // Allow requests from frontend apps
 app.use(cors());
@@ -14,42 +14,59 @@ app.use(cors());
 app.use(express.json());
 
 // Basic GET route
-app.get('/', (req, res) => {
-  res.send('Welcome to the Express Server!');
+app.get("/", (req, res) => {
+  res.send("Welcome to the Express Server!");
 });
 
 // Example API Endpoint (GET)
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date() });
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date() });
 });
 
 // Example POST route
-app.post('/api/tasks', async (req, res) => {
+app.post("/api/tasks", async (req, res) => {
   try {
     // const tableName1 = 'tasks'; // Fixed table name for this endpoint
 
-    const {tableName, ...cleanResponse} = req.body;
+    const { tableName, ...cleanResponse } = req.body;
     const columns = Object.keys(cleanResponse);
     const values = Object.values(cleanResponse);
 
     if (columns.length === 0) {
-      return res.json({ error: 'No task data provided.' });
+      return res.json({ error: "No task data provided." });
     }
 
-    const columnNames = columns.map((col) => `\`${col}\``).join(', ');
-    const placeholders = columns.map(() => '?').join(', ');
+    const columnNames = columns.map((col) => `\`${col}\``).join(", ");
+    const placeholders = columns.map(() => "?").join(", ");
     const sql = `INSERT INTO \`${tableName}\` (${columnNames}) VALUES (${placeholders})`;
 
     const [result] = await db.execute(sql, values);
 
     return res.json({
-      message: 'Task saved successfully!',
+      message: "Task saved successfully!",
       insertedId: result.insertId,
     });
-
   } catch (error) {
-    console.error('Database insertion error:', error);
-    return res.json({ error: 'Internal Server Error' });
+    console.error("Database insertion error:", error);
+    return res.json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/api/tasks/count", async (req, res) => {
+  try {
+    const query = "SELECT COUNT(*) AS totalCount FROM `tasks`";
+    const [rows] = await db.query(query);
+    const totalRecords = rows[0].totalCount;
+    res.json({
+      success: true,
+      count: totalRecords,
+    });
+  } catch (error) {
+    console.error("Database query error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve record count.",
+    });
   }
 });
 

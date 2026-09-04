@@ -41,12 +41,13 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState("Dashboard");
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-
+  const [taskCount, setTaskCount] = useState<number>(0);
+  
   // Helper to dynamically render the view component
   const renderView = () => {
     switch (currentView) {
       case "Dashboard":
-        return <Dashboard />;
+        return <Dashboard taskCount={taskCount} setTaskCount={setTaskCount} />;
       case "All Tasks":
         return <AllTasks />;
       case "Pending":
@@ -56,7 +57,7 @@ export default function App() {
       case "Overdue":
         return <OverdueTasks />;
       default:
-        return <Dashboard />;
+        return <Dashboard taskCount={taskCount} setTaskCount={setTaskCount} />;
     }
   };
 
@@ -66,7 +67,7 @@ export default function App() {
   };
   const handleAddTaskSubmit = async (taskData: TaskFormData) => {
     try {
-      const response = await fetch("http://localhost:5000/api/tasks", {
+        const response = await fetch("http://localhost:5000/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -81,6 +82,7 @@ export default function App() {
       const result = await response.json();
       console.log("Server Response:", result);
       alert("Task saved successfully!");
+      window.location.reload();
     } catch (error) {
       console.error("Failed to save task:", error);
     }
