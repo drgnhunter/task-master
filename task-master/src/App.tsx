@@ -65,14 +65,13 @@ export default function App() {
     setIsSidebarOpen(false); // Close mobile drawer when a link is clicked
   };
   const handleAddTaskSubmit = async (taskData: TaskFormData) => {
-    
     try {
       const response = await fetch("http://localhost:5000/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({...taskData, tableName:"tasks"}),
+        body: JSON.stringify({ ...taskData, tableName: "tasks" }),
       });
 
       if (!response.ok) {
@@ -183,7 +182,9 @@ export default function App() {
       <button
         className="fixed bottom-6 right-6 z-40 p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 active:scale-95"
         aria-label="Add Task"
-        onClick={() => setIsAddTaskModalOpen(true)}
+        onClick={() => {
+          setIsAddTaskModalOpen(true);
+        }}
       >
         <Plus className="w-6 h-6" />
       </button>
@@ -191,7 +192,7 @@ export default function App() {
       <AddTaskModal
         isOpen={isAddTaskModalOpen}
         onClose={() => setIsAddTaskModalOpen(false)}
-        onSubmit={()=>handleAddTaskSubmit}
+        onSubmit={() => handleAddTaskSubmit}
       />
     </div>
   );
