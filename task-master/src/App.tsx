@@ -192,6 +192,8 @@ export default function App() {
       </button>
 
       <AddTaskModal
+        taskCount={taskCount}
+        setTaskCount={setTaskCount}
         isOpen={isAddTaskModalOpen}
         onClose={() => setIsAddTaskModalOpen(false)}
         onSubmit={() => handleAddTaskSubmit}

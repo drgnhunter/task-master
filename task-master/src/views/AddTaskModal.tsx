@@ -14,12 +14,17 @@ interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (taskData: TaskFormData) => void;
+  taskCount,
+  setTaskCount
 }
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  taskCount,
+setTaskCount
+  
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -72,6 +77,24 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         }),
       });
 
+      
+        const fetchTaskCount = async () => {
+          try {
+            const res = await fetch("http://localhost:5000/api/tasks/count");
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            const data = await res.json();
+    
+            if (data?.success) {
+              setTaskCount(data.count);
+            }
+          } catch (err) {
+            console.error("Failed to fetch task count:", err);
+          }
+        };
+
+
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`);
       }
@@ -79,6 +102,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       
 
       // Notify parent component, clear state, and close modal
+      fetchTaskCount();
       onSubmit(taskData);
       resetForm();
       onClose();
