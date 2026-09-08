@@ -28,7 +28,7 @@ app.post("/api/tasks", async (req, res) => {
   try {
     // const tableName1 = 'tasks'; // Fixed table name for this endpoint
 
-    const { tableName,status ,...cleanResponse } = req.body;
+    const { tableName, status, ...cleanResponse } = req.body;
     const columns = Object.keys(cleanResponse);
     const values = Object.values(cleanResponse);
 
@@ -47,7 +47,6 @@ app.post("/api/tasks", async (req, res) => {
     const sql2 = "INSERT INTO `status` (`tasks_id`, `status`) VALUES (?, ?)";
     await db.execute(sql2, [newTaskId, status]);
 
-
     return res.json({
       message: "Task saved successfully!",
     });
@@ -63,15 +62,45 @@ app.get("/api/tasks/count", async (req, res) => {
     const [rows] = await db.query(query);
     const totalRecords = rows[0].totalCount;
 
-    const pendingQuery = "SELECT COUNT(*) AS pendingCount FROM `status` WHERE `status` = ?";
+    const pendingQuery =
+      "SELECT COUNT(*) AS pendingCount FROM `status` WHERE `status` = ?";
     const [pendingRows] = await db.query(pendingQuery, ["Pending"]);
     const pendingRecords = pendingRows[0].pendingCount;
 
+    const completedQuery =
+      "SELECT COUNT(*) AS completedCount FROM `status` WHERE `status` = ?";
+    const [completedRows] = await db.query(completedQuery, ["Completed"]);
+    const completedRecords = completedRows[0].completedCount;
+
+    const overdueQuery =
+      "SELECT COUNT(*) AS overdueCount FROM `status` WHERE `status` = ?";
+    const [overdueRows] = await db.query(overdueQuery, ["Overdue"]);
+    const overdueRecords = overdueRows[0].overdueCount;
 
     res.json({
       success: true,
       count: totalRecords,
       pendingCount: pendingRecords,
+      completedCount: completedRecords,
+      overdueCount: overdueRecords,
+    });
+  } catch (error) {
+    console.error("Database query error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve record count.",
+    });
+  }
+});
+
+app.get("/api/tasks/upcoming", async (req, res) => {
+  try {
+    const query = "SELECT * FROM `tasks` WHERE `due_date`>NOW();";
+    const [tasks] = await db.query(query);
+
+    res.json({
+      success: true,
+      tasks: tasks
     });
   } catch (error) {
     console.error("Database query error:", error);

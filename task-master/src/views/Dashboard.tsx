@@ -11,7 +11,7 @@ import {
 interface Task {
   id: number;
   title: string;
-  dueDate: string;
+  due_date: string;
   priority: string;
 }
 
@@ -19,7 +19,7 @@ const initialTasks: Task[] = [
   {
     id: 1,
     title: "Assignment",
-    dueDate: "Sep 3, 2025, 09:00 AM",
+    due_date: "Sep 3, 2025, 09:00 AM",
     priority: "high",
   },
 ];
@@ -28,9 +28,21 @@ interface DashboardProps {
   setTaskCount: React.Dispatch<React.SetStateAction<number>>;
     pendingTaskCount: number;
     setPendingTaskCount: React.Dispatch<React.SetStateAction<number>>;
+  completedTaskCount:number;
+  setCompletedTaskCount:React.Dispatch<React.SetStateAction<number>>;
+  overdueTaskCount: number;
+  setOverdueTaskCount:React.Dispatch<React.SetStateAction<number>>;
 }
-export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,setPendingTaskCount }: DashboardProps) {
-  const [tasks] = useState<Task[]>(initialTasks);
+export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,setPendingTaskCount,completedTaskCount,setCompletedTaskCount,overdueTaskCount,setOverdueTaskCount }: DashboardProps) {
+  const [tasks,setTasks] = useState<Task[]>(initialTasks);
+  type PriorityLevel = "high" | "medium" | "low";
+  
+  const priorityStyles = {
+    high: "text-red-600 bg-red-100",
+    medium: "text-amber-600 bg-amber-100",
+    low: "text-emerald-600 bg-emerald-100",
+  };
+  
 
    const fetchTaskCount = async () => {
       try {
@@ -43,15 +55,35 @@ export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,set
         if (data?.success) {
           setTaskCount(data.count);
           setPendingTaskCount(data.pendingCount);
+          setCompletedTaskCount(data.completedCount);
+          setOverdueTaskCount(data.overdueCount);
         }
       } catch (err) {
         console.error("Failed to fetch task count:", err);
       }
     };
+
+    const fetchUpcomingTasks = async ()=>{
+  try {
+        const res = await fetch("http://localhost:5000/api/tasks/upcoming");
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+
+        if (data?.success) {
+          setTasks(data.tasks);
+        }
+      } catch (err) {
+        console.error("Failed to fetch task count:", err);
+      }
+    };
+    
   useEffect(() => {
     fetchTaskCount();
+    fetchUpcomingTasks();
   }, []);
-
+  const percentage = taskCount > 0 ? (completedTaskCount / taskCount) * 100 : 0;
   const statsData = [
     {
       id: "total-tasks",
@@ -64,7 +96,7 @@ export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,set
     {
       id: "completed",
       title: "Completed",
-      count: 1,
+      count: completedTaskCount,
       icon: CheckCircle2,
       bgColor: "bg-emerald-100",
       iconColor: "text-emerald-600",
@@ -80,7 +112,7 @@ export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,set
     {
       id: "overdue",
       title: "Overdue",
-      count: 0,
+      count: overdueTaskCount,
       icon: AlertTriangle,
       bgColor: "bg-rose-100",
       iconColor: "text-rose-600",
@@ -134,15 +166,14 @@ export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,set
               <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: "0%" }}
-                />
+                  style={{ width: `${percentage}%`}}/>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-3 text-center gap-4 border-t border-gray-50 pt-4">
             <div>
-              <div className="text-2xl font-bold text-emerald-600">0</div>
+              <div className="text-2xl font-bold text-emerald-600">{completedTaskCount}</div>
               <div className="text-xs text-gray-500 font-medium mt-1">
                 Completed
               </div>
@@ -154,7 +185,7 @@ export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,set
               </div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-red-600">0</div>
+              <div className="text-2xl font-bold text-red-600">{overdueTaskCount}</div>
               <div className="text-xs text-gray-500 font-medium mt-1">
                 Overdue
               </div>
@@ -206,14 +237,25 @@ export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,set
                 <h3 className="text-sm font-semibold text-gray-800">
                   {task.title}
                 </h3>
-                <p className="text-xs text-gray-400 font-medium mt-0.5">
-                  Due: {task.dueDate}
-                </p>
+               <p className="text-xs text-gray-400 font-medium mt-0.5">
+                Due: {task.due_date ? new Date(task.due_date).toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                }) : "No deadline"}
+              </p>
               </div>
 
-              <span className="px-3 py-1 text-xs font-semibold text-red-500 bg-red-100/60 rounded-full capitalize">
-                {task.priority}
-              </span>
+   <span
+  className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${
+    priorityStyles[task.priority?.toLowerCase() as PriorityLevel] || "text-gray-600 bg-gray-100"
+  }`}
+>
+  {task.priority}
+</span>
             </div>
           ))}
         </div>

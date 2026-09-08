@@ -43,11 +43,23 @@ export default function App() {
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [taskCount, setTaskCount] = useState<number>(0);
   const [pendingTaskCount,setPendingTaskCount] = useState<number>(0);
+  const [completedTaskCount,setCompletedTaskCount] = useState<number>(0);
+  const [overdueTaskCount,setOverdueTaskCount] = useState<number>(0);
+
+  
   // Helper to dynamically render the view component
   const renderView = () => {
     switch (currentView) {
       case "Dashboard":
-        return <Dashboard pendingTaskCount={pendingTaskCount} setPendingTaskCount={setPendingTaskCount} taskCount={taskCount} setTaskCount={setTaskCount} />;
+        return <Dashboard
+        completedTaskCount={completedTaskCount}
+        setCompletedTaskCount={setCompletedTaskCount}
+        overdueTaskCount={overdueTaskCount}
+        setOverdueTaskCount={setOverdueTaskCount}  
+        pendingTaskCount={pendingTaskCount} 
+        setPendingTaskCount={setPendingTaskCount} 
+        taskCount={taskCount} 
+        setTaskCount={setTaskCount} />;
       case "All Tasks":
         return <AllTasks />;
       case "Pending":
@@ -57,8 +69,16 @@ export default function App() {
       case "Overdue":
         return <OverdueTasks />;
       default:
-        return <Dashboard pendingTaskCount={pendingTaskCount} setPendingTaskCount={setPendingTaskCount} taskCount={taskCount} setTaskCount={setTaskCount} />;
-    }
+        return <Dashboard
+                completedTaskCount={completedTaskCount}
+                setCompletedTaskCount={setCompletedTaskCount}
+                overdueTaskCount={overdueTaskCount}
+                setOverdueTaskCount={setOverdueTaskCount}  
+                pendingTaskCount={pendingTaskCount} 
+                setPendingTaskCount={setPendingTaskCount} 
+                taskCount={taskCount} 
+                setTaskCount={setTaskCount} />;
+            }
   };
 
   const handleNavClick = (viewId: ViewType) => {
