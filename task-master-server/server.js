@@ -111,6 +111,24 @@ app.get("/api/tasks/upcoming", async (req, res) => {
   }
 });
 
+app.get("/api/tasks/details", async (req, res) => {
+  try {
+    const query = "SELECT tasks.*,status.* FROM `tasks` INNER JOIN `status` ON tasks.id = status.tasks_id;";
+    const [tasks] = await db.query(query);
+
+    res.json({
+      success: true,
+      tasks: tasks
+    });
+  } catch (error) {
+    console.error("Database query error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve record count.",
+    });
+  }
+});
+
 // Start listening on the specified port
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

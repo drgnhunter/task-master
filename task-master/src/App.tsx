@@ -61,7 +61,7 @@ export default function App() {
         taskCount={taskCount} 
         setTaskCount={setTaskCount} />;
       case "All Tasks":
-        return <AllTasks />;
+        return <AllTasks formatDueDate={formatDueDate} />;
       case "Pending":
         return <PendingTasks />;
       case "Completed":
@@ -81,6 +81,21 @@ export default function App() {
             }
   };
 
+  const formatDueDate = (dateString?: string | null): string => {
+  if (!dateString) return "No deadline";
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "Invalid date";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+};
   const handleNavClick = (viewId: ViewType) => {
     setCurrentView(viewId);
     setIsSidebarOpen(false); // Close mobile drawer when a link is clicked

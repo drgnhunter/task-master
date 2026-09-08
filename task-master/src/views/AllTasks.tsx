@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Bell,
   Search,
@@ -8,17 +8,38 @@ import {
   Clock,
   Pencil,
   Trash2,
+  AlertCircle,
+  Circle,
+  CheckCircle2
 } from "lucide-react";
 
-export default function AllTasks() {
+export default function AllTasks({formatDueDate}) {
   const [activeTab, setActiveTab] = useState("Tasks");
   const [searchQuery, setSearchQuery] = useState("");
+  const [tasks,setTasks] = useState();
+  const fetchTaskCount = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/tasks/details");
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
 
+        if (data?.success) {
+          setTasks(data.tasks);
+        }
+      } catch (err) {
+        console.error("Failed to fetch task count:", err);
+      }
+    };
+  useEffect(() => {
+    fetchTaskCount();
+  }, []);
   const task = {
     id: 1,
     title: "Assignment",
     description: "Mathematics Assignment of calculus",
-    dueDate: "Sep 3, 2025, 09:00 AM",
+    due_date: "Sep 3, 2025, 09:00 AM",
     reminder: "Sep 2, 2025, 04:00 AM",
     priority: "High",
     completed: true,
@@ -90,64 +111,149 @@ export default function AllTasks() {
         </div>
 
         {/* Single Task Card */}
-        <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3.5">
-              {/* Completed Status Checkmark */}
-              <div className="mt-0.5 flex-shrink-0">
-                {task.completed && (
-                  <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-sm">
-                    <Check size={14} strokeWidth={2.5} />
-                  </div>
-                )}
+    {(tasks||[]).map((task) => {
+  // Derive status
+  const isCompleted = task.completed || task.status?.toLowerCase() === "completed";
+  const isOverdue = !isCompleted && new Date(task.due_date).getTime() < Date.now();
+
+  // Calculate late days if overdue
+  const daysLate = isOverdue
+    ? Math.max(1, Math.floor((Date.now() - new Date(task.due_date).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  // Outer card border & opacity styling
+  const cardBorder = isCompleted
+    ? "border-gray-200/80 opacity-90"
+    : isOverdue
+    ? "border-rose-200/80"
+    : "border-gray-200/80";
+
+  return (
+    <div
+      key={task.id}
+      className={`bg-white rounded-2xl border p-5 shadow-sm hover:shadow-md transition-shadow ${cardBorder}`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-start space-x-3.5">
+          {/* Status Icon */}
+          <div className="mt-0.5 flex-shrink-0">
+            {isCompleted && (
+              <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-sm">
+                <Check size={14} strokeWidth={2.5} />
+              </div>
+            )}
+            {isOverdue && (
+              <div className="text-rose-500">
+                <AlertCircle size={22} />
+              </div>
+            )}
+            {!isCompleted && !isOverdue && (
+              <button
+                aria-label="Mark as complete"
+                className="text-gray-300 hover:text-emerald-500 transition-colors"
+              >
+                <Circle size={22} strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
+
+          {/* Task Details */}
+          <div>
+            <h3
+              className={`font-semibold text-base leading-tight ${
+                isCompleted ? "text-gray-700 line-through" : "text-gray-900"
+              }`}
+            >
+              {task.title}
+            </h3>
+
+            <p
+              className={`text-sm mt-1 font-normal ${
+                isCompleted ? "text-gray-400 line-through" : "text-gray-500"
+              }`}
+            >
+              {task.description}
+            </p>
+
+            {/* Metadata Badges */}
+            <div
+              className={`flex items-center space-x-5 text-xs mt-3 ${
+                isOverdue ? "text-rose-500 font-medium" : "text-gray-400 font-normal"
+              }`}
+            >
+              <div className="flex items-center space-x-1.5">
+                <Calendar size={13} />
+                <span>
+                  {isOverdue ? "Was Due: " : "Due: "}
+                  {formatDueDate(task.due_date)}
+                </span>
               </div>
 
-              {/* Details */}
-              <div>
-                <h3 className="font-semibold text-gray-900 text-base leading-tight">
-                  {task.title}
-                </h3>
-                <p className="text-sm text-gray-400 line-through mt-1 font-normal">
-                  {task.description}
-                </p>
-
-                {/* Due Date & Reminder */}
-                <div className="flex items-center space-x-5 text-xs text-gray-400 mt-3 font-normal">
-                  <div className="flex items-center space-x-1.5">
-                    <Calendar size={13} className="text-gray-400" />
-                    <span>Due: {task.dueDate}</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5">
-                    <Clock size={13} className="text-gray-400" />
-                    <span>Reminder: {task.reminder}</span>
-                  </div>
+              {isCompleted && task.completedAt && (
+                <div className="flex items-center space-x-1.5 text-emerald-600 font-medium">
+                  <CheckCircle2 size={13} />
+                  <span>Finished: {task.completedAt}</span>
                 </div>
-              </div>
-            </div>
+              )}
 
-            {/* Right Priority Badge & Actions */}
-            <div className="flex flex-col items-end justify-between self-stretch">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-500 border border-red-100">
-                {task.priority}
-              </span>
+              {isOverdue && (
+                <div className="flex items-center space-x-1.5">
+                  <Clock size={13} />
+                  <span>{task.daysLate || daysLate} days late</span>
+                </div>
+              )}
 
-              <div className="flex items-center space-x-2.5 text-gray-300">
-                <button
-                  aria-label="Edit task"
-                  className="hover:text-gray-600 transition-colors p-1"
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  aria-label="Delete task"
-                  className="hover:text-red-500 transition-colors p-1"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
+              {!isCompleted && !isOverdue && task.reminder && (
+                <div className="flex items-center space-x-1.5">
+                  <Clock size={13} />
+                  <span>Reminder: {task.reminder}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Status / Priority Badge & Action Buttons */}
+        <div className="flex flex-col items-end justify-between self-stretch">
+          {isCompleted && (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-100">
+              Done
+            </span>
+          )}
+          {isOverdue && (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-200">
+              Overdue
+            </span>
+          )}
+          {!isCompleted && !isOverdue && (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-100 capitalize">
+              {task.priority}
+            </span>
+          )}
+
+          <div className="flex items-center space-x-2.5 text-gray-300">
+            {/* Edit button: shown for pending and overdue tasks */}
+            {!isCompleted && (
+              <button
+                aria-label="Edit task"
+                className="hover:text-gray-600 transition-colors p-1"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
+
+            <button
+              aria-label="Delete task"
+              className="hover:text-red-500 transition-colors p-1"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+})}
       </main>
     </div>
   );
