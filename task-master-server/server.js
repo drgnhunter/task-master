@@ -28,7 +28,7 @@ app.post("/api/tasks", async (req, res) => {
   try {
     // const tableName1 = 'tasks'; // Fixed table name for this endpoint
 
-    const { tableName, ...cleanResponse } = req.body;
+    const { tableName,status ,...cleanResponse } = req.body;
     const columns = Object.keys(cleanResponse);
     const values = Object.values(cleanResponse);
 
@@ -41,10 +41,15 @@ app.post("/api/tasks", async (req, res) => {
     const sql = `INSERT INTO \`${tableName}\` (${columnNames}) VALUES (${placeholders})`;
 
     const [result] = await db.execute(sql, values);
+    const newTaskId = result.insertId;
+    //Get the value of the sent json "key"
+
+    const sql2 = "INSERT INTO `status` (`tasks_id`, `status`) VALUES (?, ?)";
+    await db.execute(sql2, [newTaskId, status]);
+
 
     return res.json({
       message: "Task saved successfully!",
-      insertedId: result.insertId,
     });
   } catch (error) {
     console.error("Database insertion error:", error);
@@ -57,9 +62,16 @@ app.get("/api/tasks/count", async (req, res) => {
     const query = "SELECT COUNT(*) AS totalCount FROM `tasks`";
     const [rows] = await db.query(query);
     const totalRecords = rows[0].totalCount;
+
+    const pendingQuery = "SELECT COUNT(*) AS pendingCount FROM `status` WHERE `status` = ?";
+    const [pendingRows] = await db.query(pendingQuery, ["Pending"]);
+    const pendingRecords = pendingRows[0].pendingCount;
+
+
     res.json({
       success: true,
       count: totalRecords,
+      pendingCount: pendingRecords,
     });
   } catch (error) {
     console.error("Database query error:", error);

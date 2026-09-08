@@ -42,12 +42,12 @@ export default function App() {
   const [currentView, setCurrentView] = useState("Dashboard");
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [taskCount, setTaskCount] = useState<number>(0);
-  
+  const [pendingTaskCount,setPendingTaskCount] = useState<number>(0);
   // Helper to dynamically render the view component
   const renderView = () => {
     switch (currentView) {
       case "Dashboard":
-        return <Dashboard taskCount={taskCount} setTaskCount={setTaskCount} />;
+        return <Dashboard pendingTaskCount={pendingTaskCount} setPendingTaskCount={setPendingTaskCount} taskCount={taskCount} setTaskCount={setTaskCount} />;
       case "All Tasks":
         return <AllTasks />;
       case "Pending":
@@ -57,7 +57,7 @@ export default function App() {
       case "Overdue":
         return <OverdueTasks />;
       default:
-        return <Dashboard taskCount={taskCount} setTaskCount={setTaskCount} />;
+        return <Dashboard pendingTaskCount={pendingTaskCount} setPendingTaskCount={setPendingTaskCount} taskCount={taskCount} setTaskCount={setTaskCount} />;
     }
   };
 
@@ -192,6 +192,7 @@ export default function App() {
       </button>
 
       <AddTaskModal
+      pendingTaskCount={pendingTaskCount} setPendingTaskCount={setPendingTaskCount}
         taskCount={taskCount}
         setTaskCount={setTaskCount}
         isOpen={isAddTaskModalOpen}

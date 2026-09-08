@@ -26,8 +26,10 @@ const initialTasks: Task[] = [
 interface DashboardProps {
   taskCount: number;
   setTaskCount: React.Dispatch<React.SetStateAction<number>>;
+    pendingTaskCount: number;
+    setPendingTaskCount: React.Dispatch<React.SetStateAction<number>>;
 }
-export default function Dashboard({ taskCount, setTaskCount }: DashboardProps) {
+export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,setPendingTaskCount }: DashboardProps) {
   const [tasks] = useState<Task[]>(initialTasks);
 
    const fetchTaskCount = async () => {
@@ -40,6 +42,7 @@ export default function Dashboard({ taskCount, setTaskCount }: DashboardProps) {
 
         if (data?.success) {
           setTaskCount(data.count);
+          setPendingTaskCount(data.pendingCount);
         }
       } catch (err) {
         console.error("Failed to fetch task count:", err);
@@ -69,7 +72,7 @@ export default function Dashboard({ taskCount, setTaskCount }: DashboardProps) {
     {
       id: "pending",
       title: "Pending",
-      count: 0,
+      count: pendingTaskCount,
       icon: Clock,
       bgColor: "bg-amber-100",
       iconColor: "text-amber-600",
@@ -145,7 +148,7 @@ export default function Dashboard({ taskCount, setTaskCount }: DashboardProps) {
               </div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-amber-500">1</div>
+              <div className="text-2xl font-bold text-amber-500">{pendingTaskCount}</div>
               <div className="text-xs text-gray-500 font-medium mt-1">
                 Pending
               </div>

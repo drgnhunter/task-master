@@ -14,8 +14,10 @@ interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (taskData: TaskFormData) => void;
-  taskCount,
-  setTaskCount
+  taskCount: number;
+  setTaskCount: React.Dispatch<React.SetStateAction<number>>;
+  pendingTaskCount: number;
+  setPendingTaskCount: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({
@@ -23,8 +25,9 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   onClose,
   onSubmit,
   taskCount,
-setTaskCount
-  
+  setTaskCount,
+  pendingTaskCount,
+  setPendingTaskCount,
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -73,33 +76,30 @@ setTaskCount
           priority,
           due_date: dueDate,
           reminder_time: reminderTime,
+          status: "Pending",
           tableName: "tasks",
         }),
       });
 
-      
-        const fetchTaskCount = async () => {
-          try {
-            const res = await fetch("http://localhost:5000/api/tasks/count");
-            if (!res.ok) {
-              throw new Error(`HTTP error! status: ${res.status}`);
-            }
-            const data = await res.json();
-    
-            if (data?.success) {
-              setTaskCount(data.count);
-            }
-          } catch (err) {
-            console.error("Failed to fetch task count:", err);
+      const fetchTaskCount = async () => {
+        try {
+          const res = await fetch("http://localhost:5000/api/tasks/count");
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
           }
-        };
+          const data = await res.json();
 
+          if (data?.success) {
+            setTaskCount(data.count);
+          }
+        } catch (err) {
+          console.error("Failed to fetch task count:", err);
+        }
+      };
 
       if (!response.ok) {
         throw new Error(`Server returned ${response.status}`);
       }
-
-      
 
       // Notify parent component, clear state, and close modal
       fetchTaskCount();
@@ -125,16 +125,22 @@ setTaskCount
             className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Close modal"
           >
-            <X className="w-6 h-6"/>
+            <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col flex-1 overflow-hidden"
+        >
           <div className="p-8 flex-1 overflow-y-auto space-y-6">
             {/* Task Title */}
             <div className="space-y-1.5">
-              <label htmlFor="taskTitle" className="text-sm font-medium text-gray-700">
+              <label
+                htmlFor="taskTitle"
+                className="text-sm font-medium text-gray-700"
+              >
                 Task Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -151,7 +157,10 @@ setTaskCount
 
             {/* Description */}
             <div className="space-y-1.5">
-              <label htmlFor="description" className="text-sm font-medium text-gray-700">
+              <label
+                htmlFor="description"
+                className="text-sm font-medium text-gray-700"
+              >
                 Description
               </label>
               <textarea
@@ -167,29 +176,37 @@ setTaskCount
 
             {/* Priority */}
             <div className="space-y-1.5">
-              <label htmlFor="priority" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Flag className="w-4 h-4 text-gray-500"/> Priority
+              <label
+                htmlFor="priority"
+                className="text-sm font-medium text-gray-700 flex items-center gap-2"
+              >
+                <Flag className="w-4 h-4 text-gray-500" /> Priority
               </label>
               <div className="relative">
                 <select
                   id="priority"
                   name="priority"
                   value={priority}
-                  onChange={(e) => setPriority(e.target.value as TaskFormData["priority"])}
+                  onChange={(e) =>
+                    setPriority(e.target.value as TaskFormData["priority"])
+                  }
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition appearance-none bg-white"
                 >
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
                   <option value="High">High</option>
                 </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"/>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
             {/* Due Date */}
             <div className="space-y-1.5">
-              <label htmlFor="dueDate" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-500"/> Due Date
+              <label
+                htmlFor="dueDate"
+                className="text-sm font-medium text-gray-700 flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4 text-gray-500" /> Due Date
               </label>
               <div className="relative">
                 <input
@@ -200,13 +217,16 @@ setTaskCount
                   onChange={(e) => setDueDate(e.target.value)}
                   className="w-full pl-4 pr-12 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition bg-white"
                 />
-                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"/>
+                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
             {/* Reminder Time */}
             <div className="space-y-1.5">
-              <label htmlFor="reminderTime" className="text-sm font-medium text-gray-700">
+              <label
+                htmlFor="reminderTime"
+                className="text-sm font-medium text-gray-700"
+              >
                 Reminder Time
               </label>
               <div className="relative">
@@ -218,7 +238,7 @@ setTaskCount
                   onChange={(e) => setReminderTime(e.target.value)}
                   className="w-full pl-4 pr-12 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition bg-white"
                 />
-                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"/>
+                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
               </div>
             </div>
           </div>
