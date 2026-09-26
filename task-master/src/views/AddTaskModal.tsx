@@ -77,6 +77,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           due_date: dueDate,
           reminder_time: reminderTime,
           status: "Pending",
+          login_id : localStorage.getItem("id"),
           tableName: "tasks",
         }),
       });

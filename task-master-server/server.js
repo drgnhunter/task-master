@@ -91,7 +91,8 @@ app.get("/api/tasks/count", async (req, res) => {
       message: "Failed to retrieve record count.",
     });
   }
-});
+}
+);
 
 app.get("/api/tasks/upcoming", async (req, res) => {
   try {
@@ -128,6 +129,42 @@ app.get("/api/tasks/details", async (req, res) => {
     });
   }
 });
+
+app.post("/api/tasks/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ message: "Username and password are required." });
+  }
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT id, username, password FROM login WHERE username = ?",
+      [username]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({ message: "Invalid username or password." });
+    }
+
+    const user = rows[0];
+
+    // Plain text check (Use bcrypt.compare in production)
+    if (user.password !== password) {
+      return res.status(401).json({ message: "Invalid username or password." });
+    }
+
+    // Return the id and username expected by the frontend
+    return res.status(200).json({
+      id: user.id,
+      username: user.username,
+      message: "Login successful",
+    });
+  } catch (error) {
+    console.error("Login route error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }}
+);
 
 // Start listening on the specified port
 app.listen(PORT, () => {
