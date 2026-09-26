@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   CheckSquare,
   Menu,
@@ -9,6 +9,8 @@ import {
   Plus,
   CheckCircle2,
   Clock,
+  LogOut,
+  User,
 } from "lucide-react";
 
 import Dashboard from "./views/Dashboard";
@@ -17,10 +19,10 @@ import PendingTasks from "./views/PendingTasks";
 import CompletedTasks from "./views/CompletedTasks";
 import OverdueTasks from "./views/OverdueTasks";
 import AddTaskModal, { type TaskFormData } from "./views/AddTaskModal";
+import Login, { type UserSession } from "./views/Login";
 
 type ViewType = "Dashboard" | "All Tasks" | "Pending" | "Completed" | "Overdue";
 
-// 2. Define the NavItem interface
 interface NavItem {
   id: ViewType;
   label: string;
@@ -35,79 +37,70 @@ const navItems: NavItem[] = [
   { id: "Overdue", label: "Overdue", icon: AlertCircle },
 ];
 
-// 1. Define a type or union for your views
-
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState("Dashboard");
+  const [currentView, setCurrentView] = useState<ViewType>("Dashboard");
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [taskCount, setTaskCount] = useState<number>(0);
-  const [pendingTaskCount,setPendingTaskCount] = useState<number>(0);
-  const [completedTaskCount,setCompletedTaskCount] = useState<number>(0);
-  const [overdueTaskCount,setOverdueTaskCount] = useState<number>(0);
+  const [pendingTaskCount, setPendingTaskCount] = useState<number>(0);
+  const [completedTaskCount, setCompletedTaskCount] = useState<number>(0);
+  const [overdueTaskCount, setOverdueTaskCount] = useState<number>(0);
 
-  
-  // Helper to dynamically render the view component
-  const renderView = () => {
-    switch (currentView) {
-      case "Dashboard":
-        return <Dashboard
-        completedTaskCount={completedTaskCount}
-        setCompletedTaskCount={setCompletedTaskCount}
-        overdueTaskCount={overdueTaskCount}
-        setOverdueTaskCount={setOverdueTaskCount}  
-        pendingTaskCount={pendingTaskCount} 
-        setPendingTaskCount={setPendingTaskCount} 
-        taskCount={taskCount} 
-        setTaskCount={setTaskCount} />;
-      case "All Tasks":
-        return <AllTasks formatDueDate={formatDueDate} />;
-      case "Pending":
-        return <PendingTasks />;
-      case "Completed":
-        return <CompletedTasks />;
-      case "Overdue":
-        return <OverdueTasks />;
-      default:
-        return <Dashboard
-                completedTaskCount={completedTaskCount}
-                setCompletedTaskCount={setCompletedTaskCount}
-                overdueTaskCount={overdueTaskCount}
-                setOverdueTaskCount={setOverdueTaskCount}  
-                pendingTaskCount={pendingTaskCount} 
-                setPendingTaskCount={setPendingTaskCount} 
-                taskCount={taskCount} 
-                setTaskCount={setTaskCount} />;
-            }
+  // Restore user session including user ID from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed?.id && parsed?.username) {
+          setCurrentUser(parsed);
+        }
+      } catch (err) {
+        console.error("Failed to parse saved session", err);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setCurrentUser(null);
   };
 
   const formatDueDate = (dateString?: string | null): string => {
-  if (!dateString) return "No deadline";
+    if (!dateString) return "No deadline";
 
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return "Invalid date";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid date";
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
-};
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date);
+  };
+
   const handleNavClick = (viewId: ViewType) => {
     setCurrentView(viewId);
-    setIsSidebarOpen(false); // Close mobile drawer when a link is clicked
+    setIsSidebarOpen(false);
   };
+
+  // Pass user_id when creating new tasks
   const handleAddTaskSubmit = async (taskData: TaskFormData) => {
     try {
-        const response = await fetch("http://localhost:5000/api/tasks", {
+      const response = await fetch("http://localhost:5000/api/tasks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...taskData, tableName: "tasks" }),
+        body: JSON.stringify({
+          ...taskData,
+          tableName: "tasks",
+          userId: currentUser?.id, // Includes user id
+        }),
       });
 
       if (!response.ok) {
@@ -123,9 +116,53 @@ export default function App() {
     }
   };
 
+  const renderView = () => {
+    switch (currentView) {
+      case "Dashboard":
+        return (
+          <Dashboard
+            completedTaskCount={completedTaskCount}
+            setCompletedTaskCount={setCompletedTaskCount}
+            overdueTaskCount={overdueTaskCount}
+            setOverdueTaskCount={setOverdueTaskCount}
+            pendingTaskCount={pendingTaskCount}
+            setPendingTaskCount={setPendingTaskCount}
+            taskCount={taskCount}
+            setTaskCount={setTaskCount}
+          />
+        );
+      case "All Tasks":
+        return <AllTasks formatDueDate={formatDueDate} />;
+      case "Pending":
+        return <PendingTasks />;
+      case "Completed":
+        return <CompletedTasks />;
+      case "Overdue":
+        return <OverdueTasks />;
+      default:
+        return (
+          <Dashboard
+            completedTaskCount={completedTaskCount}
+            setCompletedTaskCount={setCompletedTaskCount}
+            overdueTaskCount={overdueTaskCount}
+            setOverdueTaskCount={setOverdueTaskCount}
+            pendingTaskCount={pendingTaskCount}
+            setPendingTaskCount={setPendingTaskCount}
+            taskCount={taskCount}
+            setTaskCount={setTaskCount}
+          />
+        );
+    }
+  };
+
+  // Guard: Show login page if not logged in
+  if (!currentUser) {
+    return <Login onLoginSuccess={(user) => setCurrentUser(user)} />;
+  }
+
   return (
     <div className="flex h-screen w-full bg-slate-50/50 overflow-hidden relative">
-      {/* Overlay Backdrop for Mobile Menu */}
+      {/* Drawer Overlay */}
       {isSidebarOpen && (
         <div
           onClick={() => setIsSidebarOpen(false)}
@@ -133,14 +170,13 @@ export default function App() {
         />
       )}
 
-      {/* 1. Sidebar (Desktop Static / Mobile Drawer) */}
+      {/* Sidebar */}
       <aside
         className={`fixed md:static top-0 left-0 h-screen w-64 bg-white border-r border-gray-100 p-6 flex flex-col justify-between z-50 transition-transform duration-300 ease-in-out shrink-0 ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
         <div className="space-y-8">
-          {/* Logo & Mobile Close Button */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-blue-600 text-white p-1.5 rounded-lg">
@@ -150,7 +186,6 @@ export default function App() {
                 TaskMaster
               </span>
             </div>
-            {/* Close button for mobile menu */}
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg md:hidden"
@@ -159,7 +194,6 @@ export default function App() {
             </button>
           </div>
 
-          {/* Navigation Links */}
           <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -183,18 +217,32 @@ export default function App() {
           </nav>
         </div>
 
-        {/* Settings */}
-        <div>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-150">
+        {/* User Session Info & Logout */}
+        <div className="space-y-2 border-t border-gray-100 pt-4">
+          <div className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-gray-500">
+            <User className="w-4 h-4 text-gray-400" />
+            <div className="flex flex-col truncate">
+              <span className="text-slate-700 font-bold truncate">{currentUser.username}</span>
+            </div>
+          </div>
+
+          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors duration-150">
             <Settings className="w-5 h-5" />
             <span>Settings</span>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors duration-150"
+          >
+            <LogOut className="w-5 h-5" />
+            <span>Logout</span>
           </button>
         </div>
       </aside>
 
-      {/* 2. Main Content Wrapper */}
+      {/* Main App View */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Mobile Header Bar with Hamburger Menu */}
         <header className="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 text-white p-1.5 rounded-lg">
@@ -211,28 +259,25 @@ export default function App() {
           </button>
         </header>
 
-        {/* Scrollable Main Area */}
         <main className="flex-1 overflow-y-auto">{renderView()}</main>
       </div>
 
-      {/* Floating Action Button */}
       <button
         className="fixed bottom-6 right-6 z-40 p-4 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-blue-300 active:scale-95"
         aria-label="Add Task"
-        onClick={() => {
-          setIsAddTaskModalOpen(true);
-        }}
+        onClick={() => setIsAddTaskModalOpen(true)}
       >
         <Plus className="w-6 h-6" />
       </button>
 
       <AddTaskModal
-      pendingTaskCount={pendingTaskCount} setPendingTaskCount={setPendingTaskCount}
+        pendingTaskCount={pendingTaskCount}
+        setPendingTaskCount={setPendingTaskCount}
         taskCount={taskCount}
         setTaskCount={setTaskCount}
         isOpen={isAddTaskModalOpen}
         onClose={() => setIsAddTaskModalOpen(false)}
-        onSubmit={() => handleAddTaskSubmit}
+        onSubmit={handleAddTaskSubmit}
       />
     </div>
   );
