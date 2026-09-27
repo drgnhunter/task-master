@@ -20,6 +20,7 @@ import CompletedTasks from "./views/CompletedTasks";
 import OverdueTasks from "./views/OverdueTasks";
 import AddTaskModal, { type TaskFormData } from "./views/AddTaskModal";
 import Login, { type UserSession } from "./views/Login";
+import Signup from "./views/SignUp";
 
 type ViewType = "Dashboard" | "All Tasks" | "Pending" | "Completed" | "Overdue";
 
@@ -37,8 +38,11 @@ const navItems: NavItem[] = [
   { id: "Overdue", label: "Overdue", icon: AlertCircle },
 ];
 
+
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
+  const [authView, setAuthView] = useState<"login" | "signup">("login");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>("Dashboard");
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
@@ -62,9 +66,42 @@ export default function App() {
     }
   }, []);
 
+useEffect(() => {
+  // 1. Check if returning from Google OAuth redirect
+  const params = new URLSearchParams(window.location.search);
+  const oauthSession = params.get("oauth_session");
+
+  if (oauthSession) {
+    try {
+      const user = JSON.parse(decodeURIComponent(oauthSession));
+      localStorage.setItem("user", JSON.stringify(user));
+      setCurrentUser(user);
+      // Clean query parameter from browser address bar
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    } catch (e) {
+      console.error("Failed to parse OAuth session", e);
+    }
+  }
+
+  // 2. Otherwise check existing localStorage
+  const stored = localStorage.getItem("user");
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed?.id && parsed?.username) {
+        setCurrentUser(parsed);
+      }
+    } catch (err) {
+      console.error("Failed to parse saved session", err);
+    }
+  }
+}, []);
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     setCurrentUser(null);
+    setAuthView("login");
   };
 
   const formatDueDate = (dateString?: string | null): string => {
@@ -155,9 +192,23 @@ export default function App() {
     }
   };
 
-  // Guard: Show login page if not logged in
+  // Guard: Show login or signup page if not logged in
   if (!currentUser) {
-    return <Login onLoginSuccess={(user) => setCurrentUser(user)} />;
+    if (authView === "signup") {
+      return (
+        <Signup
+          onSignupSuccess={(user) => setCurrentUser(user)}
+          onNavigateToLogin={() => setAuthView("login")}
+        />
+      );
+    }
+
+    return (
+      <Login
+        onLoginSuccess={(user) => setCurrentUser(user)}
+        onNavigateToSignup={() => setAuthView("signup")}
+      />
+    );
   }
 
   return (
@@ -222,7 +273,9 @@ export default function App() {
           <div className="flex items-center gap-3 px-4 py-2 text-xs font-semibold text-gray-500">
             <User className="w-4 h-4 text-gray-400" />
             <div className="flex flex-col truncate">
-              <span className="text-slate-700 font-bold truncate">{currentUser.username}</span>
+              <span className="text-slate-700 font-bold truncate">
+                {currentUser.username}
+              </span>
             </div>
           </div>
 
