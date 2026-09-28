@@ -43,10 +43,19 @@ export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,set
     low: "text-emerald-600 bg-emerald-100",
   };
   
+  const payload = {
+    "login_id":localStorage.getItem("id")
+  };
 
-   const fetchTaskCount = async () => {
+   const fetchTaskCount = async (payload: { login_id: string}) => {
       try {
-        const res = await fetch("http://localhost:5000/api/tasks/count");
+        const res = await fetch("http://localhost:5000/api/tasks/count",{
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
@@ -80,7 +89,7 @@ export default function Dashboard({ taskCount, setTaskCount,pendingTaskCount,set
     };
     
   useEffect(() => {
-    fetchTaskCount();
+    fetchTaskCount(payload);
     fetchUpcomingTasks();
   }, []);
   const percentage = taskCount > 0 ? (completedTaskCount / taskCount) * 100 : 0;

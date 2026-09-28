@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import { google } from "googleapis";
 import db from "./db.js";
 import BaseModel from "./BaseModel.js";
-
+import bcrypt from "bcrypt";
 dotenv.config();
 
 const app = express();
@@ -14,9 +14,17 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 app.use(express.json());
+
+async function encryptingPassword(password) {
+  const saltRounds = 12; // Controls computation time (2^12 iterations)
+  const passwordHash = await bcrypt.hash(password, saltRounds);
+
+  // Store passwordHash directly in your database VARCHAR(60+) column
+  return passwordHash;
+}
 
 // ---------------------------------------------
 // Google OAuth Configuration
@@ -24,7 +32,7 @@ app.use(express.json());
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
+  process.env.GOOGLE_REDIRECT_URI,
 );
 
 // Endpoint 1: Redirect user to Google sign-in
@@ -63,7 +71,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
     // Check if user already exists in login table
     const [rows] = await db.execute(
       "SELECT id, username FROM login WHERE username = ?",
-      [profile.email]
+      [profile.email],
     );
 
     let userId;
@@ -76,7 +84,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
       // Auto-register new Google user with a dummy/oauth password marker
       const [insertResult] = await db.execute(
         "INSERT INTO login (username, password) VALUES (?, ?)",
-        [profile.email, "OAUTH_GOOGLE_USER"]
+        [profile.email, "OAUTH_GOOGLE_USER"],
       );
       userId = insertResult.insertId;
     }
@@ -84,7 +92,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
     let fullname = profile.name;
     // Pass user session data via URL params back to React
     const sessionPayload = encodeURIComponent(
-      JSON.stringify({ id: userId, username:fullname })
+      JSON.stringify({ id: userId, username: fullname }),
     );
 
     res.redirect(`${process.env.FRONTEND_URL}?oauth_session=${sessionPayload}`);
@@ -132,20 +140,23 @@ app.post("/api/tasks", async (req, res) => {
   }
 });
 
-app.get("/api/tasks/count", async (req, res) => {
+app.post("/api/tasks/count", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT COUNT(*) AS totalCount FROM `tasks`");
+    const [rows] = await db.query(
+      "SELECT COUNT(*) AS totalCount FROM `tasks` WHERE `login_id`=?",
+      [req.body.login_id],
+    );
     const [pendingRows] = await db.query(
-      "SELECT COUNT(*) AS pendingCount FROM `status` WHERE `status` = ?",
-      ["Pending"]
+      "SELECT COUNT(*) AS pendingCount FROM `status` LEFT JOIN `tasks` ON `status`.`tasks_id` = `tasks`.`id` WHERE `status` = ? AND `login_id`=?",
+      ["Pending",req.body.login_id]
     );
     const [completedRows] = await db.query(
-      "SELECT COUNT(*) AS completedCount FROM `status` WHERE `status` = ?",
-      ["Completed"]
+      "SELECT COUNT(*) AS completedCount FROM `status` LEFT JOIN `tasks` ON `status`.`tasks_id` = `tasks`.`id` WHERE `status` = ? AND `login_id`=?",
+      ["Completed",req.body.login_id]
     );
     const [overdueRows] = await db.query(
-      "SELECT COUNT(*) AS overdueCount FROM `status` WHERE `status` = ?",
-      ["Overdue"]
+      "SELECT COUNT(*) AS overdueCount FROM `status` LEFT JOIN `tasks` ON `status`.`tasks_id` = `tasks`.`id` WHERE `status` = ? AND `login_id`=?",
+      ["Overdue",req.body.login_id]
     );
 
     res.json({
@@ -157,7 +168,9 @@ app.get("/api/tasks/count", async (req, res) => {
     });
   } catch (error) {
     console.error("Database query error:", error);
-    res.status(500).json({ success: false, message: "Failed to retrieve record count." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to retrieve record count." });
   }
 });
 
@@ -168,7 +181,9 @@ app.get("/api/tasks/upcoming", async (req, res) => {
     res.json({ success: true, tasks });
   } catch (error) {
     console.error("Database query error:", error);
-    res.status(500).json({ success: false, message: "Failed to retrieve record count." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to retrieve record count." });
   }
 });
 
@@ -180,7 +195,9 @@ app.get("/api/tasks/details", async (req, res) => {
     res.json({ success: true, tasks });
   } catch (error) {
     console.error("Database query error:", error);
-    res.status(500).json({ success: false, message: "Failed to retrieve record count." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to retrieve record count." });
   }
 });
 
@@ -188,13 +205,15 @@ app.post("/api/tasks/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res.status(400).json({ message: "Username and password are required." });
+    return res
+      .status(400)
+      .json({ message: "Username and password are required." });
   }
 
   try {
     const [rows] = await db.execute(
       "SELECT id, username, password FROM login WHERE username = ?",
-      [username]
+      [username],
     );
 
     if (rows.length === 0 || rows[0].password !== password) {
@@ -215,14 +234,19 @@ app.post("/api/tasks/login", async (req, res) => {
 app.post("/api/tasks/signup", async (req, res) => {
   const { username, password } = req.body;
 
+  
+
   if (!username || !password) {
-    return res.status(400).json({ message: "Username and password are required." });
+    return res
+      .status(400)
+      .json({ message: "Username and password are required." });
   }
+let encryptedPassword = await encryptingPassword(password);
 
   try {
     const [existing] = await db.execute(
       "SELECT id FROM login WHERE username = ?",
-      [username]
+      [username],
     );
 
     if (existing.length > 0) {
@@ -231,7 +255,7 @@ app.post("/api/tasks/signup", async (req, res) => {
 
     const [result] = await db.execute(
       "INSERT INTO login (username, password) VALUES (?, ?)",
-      [username, password]
+      [username, encryptedPassword],
     );
 
     return res.status(201).json({
